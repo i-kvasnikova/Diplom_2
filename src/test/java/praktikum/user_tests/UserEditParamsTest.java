@@ -1,11 +1,14 @@
 package praktikum.user_tests;
 
+import io.qameta.allure.Description;
+import io.qameta.allure.Epic;
 import io.restassured.response.Response;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import praktikum.clients.UserClient;
+import praktikum.configuration.ErrorMessageConstants;
 import praktikum.generators.UserGenerator;
 import praktikum.models.User;
 import praktikum.responses.UserRegisterData;
@@ -17,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+@Epic("Тестирование метода редактирования данных пользователя")
 @RunWith(Parameterized.class)
 public class UserEditParamsTest {
     @Parameterized.Parameter
@@ -30,7 +34,7 @@ public class UserEditParamsTest {
         new UserClient().delete(savedData.accessToken);
     }
 
-    @Parameterized.Parameters(name = "{index}: {0}")
+    @Parameterized.Parameters(name = "Редактирование данных о пользователе [{index}]: {0}")
     public static Object[] getUserData() {
         userToCreate = UserGenerator.getRandom();
         userClient = new UserClient();
@@ -42,31 +46,33 @@ public class UserEditParamsTest {
     }
 
     @Test
+    @Description("Пользователь авторизован")
     public void testEditUserAuthorizedValidData(){
         savedData = userClient.register(userToCreate);
 
         Response response = userClient.edit(userToEdit, savedData.accessToken);
         UserRegisterData mappedCreateResponse = response.getBody().as(UserRegisterData.class);
 
-        assertThat(response.statusCode(), equalTo(200));
-        assertTrue(mappedCreateResponse.success);
-        assertThat(mappedCreateResponse.user.getName(), equalTo(userToEdit.getName()));
-        assertThat(mappedCreateResponse.user.getEmail(), equalTo(userToEdit.getEmail()));
+        assertThat(ErrorMessageConstants.STATUS_CODE_IS_DIFFERENT, response.statusCode(), equalTo(200));
+        assertTrue(ErrorMessageConstants.WRONG_SUCCESS_STATUS, mappedCreateResponse.success);
+        assertThat(String.format(ErrorMessageConstants.FIELD_VALUE_IS_DIFFERENT, "name"), mappedCreateResponse.user.getName(), equalTo(userToEdit.getName()));
+        assertThat(String.format(ErrorMessageConstants.FIELD_VALUE_IS_DIFFERENT, "email"), mappedCreateResponse.user.getEmail(), equalTo(userToEdit.getEmail()));
 
         userClient.logout(Map.of("token", savedData.refreshToken));
         response = userClient.login(userToEdit);
-        assertThat(response.statusCode(), equalTo(200));
+        assertThat(ErrorMessageConstants.STATUS_CODE_IS_DIFFERENT, response.statusCode(), equalTo(200));
     }
 
     @Test
+    @Description("Пользователь не авторизован")
     public void testEditUserNotAuthorizedValidData(){
         savedData = userClient.register(userToCreate);
 
         Response response = userClient.edit(userToEdit, "");
         UserRegisterData mappedCreateResponse = response.getBody().as(UserRegisterData.class);
 
-        assertThat(response.statusCode(), equalTo(401));
-        assertFalse(mappedCreateResponse.success);
-        assertThat(mappedCreateResponse.message, equalTo("You should be authorised"));
+        assertThat(ErrorMessageConstants.STATUS_CODE_IS_DIFFERENT, response.statusCode(), equalTo(401));
+        assertFalse(ErrorMessageConstants.WRONG_SUCCESS_STATUS, mappedCreateResponse.success);
+        assertThat(ErrorMessageConstants.MESSAGE_IS_DIFFERENT, mappedCreateResponse.message, equalTo("You should be authorised"));
     }
 }
