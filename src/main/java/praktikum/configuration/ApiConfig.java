@@ -19,4 +19,11 @@ public interface ApiConfig extends Config {
 
     @Key("api.user")
     String getUserDataPath();
+
+    @Key("api.orders")
+    String getOrdersPerUserPath();
+
+    @Key("api.orders.all")
+    String getOrdersAllPath();
+
 }
