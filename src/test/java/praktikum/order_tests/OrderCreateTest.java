@@ -28,31 +28,35 @@ public class OrderCreateTest {
 
     String accessToken;
     ArrayList<String> ingredients;
+    UserClient userClient;
+    OrderClient orderClient;
 
     @Before
     public void setUp() throws Exception {
-        accessToken = new UserClient().registerAndGetToken(UserGenerator.getRandom());
+        userClient = new UserClient();
+        orderClient = new OrderClient();
+        accessToken = userClient.registerAndGetToken(UserGenerator.getRandom());
         ingredients = OrderGenerator.getIngredients();
     }
 
     @After
     public void tearDown() {
-        new UserClient().delete(accessToken);
+        userClient.delete(accessToken);
     }
 
     @Test
     @DisplayName("Отправить запрос на создание заказа для авторизованного пользователя")
     @Description("Заказ должен быть создан")
     public void createOrderForAuthorizedUserAndValidIngredients() {
-        OrderListResponse userOrders = new OrderClient().getMappedOrdersPerUser(accessToken);
+        OrderListResponse userOrders = orderClient.getMappedOrdersPerUser(accessToken);
         int ordersCountBeforeRequest = userOrders.totalToday;
 
-        Response response = new OrderClient().create(Map.of("ingredients", ingredients) , accessToken);
+        Response response = orderClient.create(Map.of("ingredients", ingredients) , accessToken);
         StellarburgersGeneralResponse mappedCreateResponse = response.getBody().as(StellarburgersGeneralResponse.class);
         assertThat(ErrorMessageConstants.STATUS_CODE_IS_DIFFERENT, response.statusCode(), equalTo(200));
         assertTrue(ErrorMessageConstants.WRONG_SUCCESS_STATUS, mappedCreateResponse.success);
 
-        userOrders = new OrderClient().getMappedOrdersPerUser(accessToken);
+        userOrders = orderClient.getMappedOrdersPerUser(accessToken);
         assertEquals(String.format(ErrorMessageConstants.WRONG_FIELD_VALUE, "totalToday"), ordersCountBeforeRequest + 1, userOrders.totalToday);
     }
 
@@ -60,17 +64,17 @@ public class OrderCreateTest {
     @DisplayName("Отправить запрос на создание заказа без ингредиентов")
     @Description("Заказ не должен быть создан")
     public void createOrderForAuthorizedUserWithoutIngredients() {
-        OrderListResponse userOrders = new OrderClient().getMappedOrdersPerUser(accessToken);
+        OrderListResponse userOrders = orderClient.getMappedOrdersPerUser(accessToken);
         int ordersCountBeforeRequest = userOrders.totalToday;
 
-        Response response = new OrderClient().create(Map.of("ingredients", new ArrayList<>()) , accessToken);
+        Response response = orderClient.create(Map.of("ingredients", new ArrayList<>()) , accessToken);
         StellarburgersGeneralResponse mappedCreateResponse = response.getBody().as(StellarburgersGeneralResponse.class);
 
         assertFalse(ErrorMessageConstants.WRONG_SUCCESS_STATUS, mappedCreateResponse.success);
         assertThat(ErrorMessageConstants.STATUS_CODE_IS_DIFFERENT, response.statusCode(), equalTo(400));
         assertThat(ErrorMessageConstants.MESSAGE_IS_DIFFERENT, mappedCreateResponse.message, equalTo("Ingredient ids must be provided"));
 
-        userOrders = new OrderClient().getMappedOrdersPerUser(accessToken);
+        userOrders = orderClient.getMappedOrdersPerUser(accessToken);
         assertEquals(String.format(ErrorMessageConstants.WRONG_FIELD_VALUE, "totalToday"), ordersCountBeforeRequest, userOrders.totalToday);
     }
 
@@ -78,18 +82,18 @@ public class OrderCreateTest {
     @DisplayName("Отправить запрос на создание заказа, где в составе есть невалидный хеш ингредиента")
     @Description("Заказ не должен быть создан")
     public void createOrderForAuthorizedUserContainsInvalidIngredient() {
-        OrderListResponse userOrders = new OrderClient().getMappedOrdersPerUser(accessToken);
+        OrderListResponse userOrders = orderClient.getMappedOrdersPerUser(accessToken);
         int ordersCountBeforeRequest = userOrders.totalToday;
 
         ingredients.add("invalidValue");
-        Response response = new OrderClient().create(Map.of("ingredients", ingredients) , accessToken);
+        Response response = orderClient.create(Map.of("ingredients", ingredients) , accessToken);
         StellarburgersGeneralResponse mappedCreateResponse = response.getBody().as(StellarburgersGeneralResponse.class);
 
         assertFalse(ErrorMessageConstants.WRONG_SUCCESS_STATUS, mappedCreateResponse.success);
         assertThat(ErrorMessageConstants.STATUS_CODE_IS_DIFFERENT, response.statusCode(), equalTo(500));
         assertThat(ErrorMessageConstants.MESSAGE_IS_DIFFERENT, mappedCreateResponse.message, equalTo("One or more ids provided are incorrect"));
 
-        userOrders = new OrderClient().getMappedOrdersPerUser(accessToken);
+        userOrders = orderClient.getMappedOrdersPerUser(accessToken);
         assertEquals(String.format(ErrorMessageConstants.WRONG_FIELD_VALUE, "totalToday"), ordersCountBeforeRequest, userOrders.totalToday);
     }
 
@@ -97,17 +101,17 @@ public class OrderCreateTest {
     @DisplayName("Отправить запрос на создание заказа только с невалидным хешем ингредиента")
     @Description("Заказ не должен быть создан")
     public void createOrderForAuthorizedUserWithInvalidIngredients() {
-        OrderListResponse userOrders = new OrderClient().getMappedOrdersPerUser(accessToken);
+        OrderListResponse userOrders = orderClient.getMappedOrdersPerUser(accessToken);
         int ordersCountBeforeRequest = userOrders.totalToday;
 
-        Response response = new OrderClient().create(Map.of("ingredients", new ArrayList<>(List.of("invalidValue"))) , accessToken);
+        Response response = orderClient.create(Map.of("ingredients", new ArrayList<>(List.of("invalidValue"))) , accessToken);
         StellarburgersGeneralResponse mappedCreateResponse = response.getBody().as(StellarburgersGeneralResponse.class);
 
         assertFalse(ErrorMessageConstants.WRONG_SUCCESS_STATUS, mappedCreateResponse.success);
         assertThat(ErrorMessageConstants.MESSAGE_IS_DIFFERENT, mappedCreateResponse.message, equalTo("One or more ids provided are incorrect"));
         assertThat(ErrorMessageConstants.STATUS_CODE_IS_DIFFERENT, response.statusCode(), equalTo(500));
 
-        userOrders = new OrderClient().getMappedOrdersPerUser(accessToken);
+        userOrders = orderClient.getMappedOrdersPerUser(accessToken);
         assertEquals(String.format(ErrorMessageConstants.WRONG_FIELD_VALUE, "totalToday"), ordersCountBeforeRequest, userOrders.totalToday);
     }
 
@@ -115,7 +119,7 @@ public class OrderCreateTest {
     @DisplayName("Отправить запрос на создание заказа без авторизации")
     @Description("Заказ не должен быть создан")
     public void createOrderForNotAuthorizedUser()  {
-        Response response = new OrderClient().create(Map.of("ingredients", ingredients) , "");
+        Response response = orderClient.create(Map.of("ingredients", ingredients) , "");
         StellarburgersGeneralResponse mappedCreateResponse = response.getBody().as(StellarburgersGeneralResponse.class);
         assertFalse(ErrorMessageConstants.WRONG_SUCCESS_STATUS, mappedCreateResponse.success);
         assertThat(ErrorMessageConstants.STATUS_CODE_IS_DIFFERENT, response.statusCode(), equalTo(401));

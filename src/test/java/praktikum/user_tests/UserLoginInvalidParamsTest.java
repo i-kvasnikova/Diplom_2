@@ -23,16 +23,18 @@ public class UserLoginInvalidParamsTest {
     @Parameterized.Parameter
     public User userToLogin;
     private static String accessToken;
+    private static UserClient userClient;
 
     @AfterClass
     public static void tearDown() {
-        new UserClient().delete(accessToken);
+        userClient.delete(accessToken);
     }
 
     @Parameterized.Parameters(name = "Неуспешная авторизация [{index}]: {0}")
     public static Object[] getUserData() {
+        userClient = new UserClient();
         User userToCreate = UserGenerator.getRandom();
-        accessToken = new UserClient().create(userToCreate).getBody().as(UserRegisterData.class).accessToken.substring(7);
+        accessToken = userClient.create(userToCreate).getBody().as(UserRegisterData.class).accessToken.substring(7);
         return new Object[][] {
                 { UserGenerator.getWithoutEmail(userToCreate) },
                 { UserGenerator.getWithoutPassword(userToCreate) },
@@ -44,7 +46,7 @@ public class UserLoginInvalidParamsTest {
     @Test
     @Description("Параметры заполнены неправильно или отсутствуют")
     public void testLoginWithInvalidParams() {
-        Response response = new UserClient().login(userToLogin);
+        Response response = userClient.login(userToLogin);
         UserRegisterData mappedCreateResponse = response.getBody().as(UserRegisterData.class);
 
         assertThat(ErrorMessageConstants.STATUS_CODE_IS_DIFFERENT, response.statusCode(), equalTo(401));

@@ -1,10 +1,7 @@
 package praktikum.user_tests;
 
-import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
-import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.Response;
-import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -23,9 +20,11 @@ import static org.junit.Assert.assertFalse;
 public class UserCreateInvalidParamsTest {
     @Parameterized.Parameter
     public User user;
+    private static UserClient userClient;
 
     @Parameterized.Parameters(name = "Создание пользователя без обязательного параметра [{index}]: {0}")
     public static Object[] getUserData() {
+        userClient = new UserClient();
         return new Object[][] {
                 { UserGenerator.getWithoutName() },
                 { UserGenerator.getWithoutEmail() },
@@ -35,7 +34,7 @@ public class UserCreateInvalidParamsTest {
 
     @Test
     public void invalidCreateRequestIsNotAllowed() {
-        Response response = new UserClient().create(user);
+        Response response = userClient.create(user);
         UserRegisterData mappedCreateResponse = response.getBody().as(UserRegisterData.class);
         assertThat(ErrorMessageConstants.STATUS_CODE_IS_DIFFERENT, response.statusCode(), equalTo(403));
         assertFalse(ErrorMessageConstants.WRONG_SUCCESS_STATUS, mappedCreateResponse.success);

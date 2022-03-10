@@ -22,22 +22,26 @@ import static org.junit.Assert.assertTrue;
 public class OrdersGetForUserTests {
 
     String accessToken;
+    UserClient userClient;
+    OrderClient orderClient;
 
     @Before
     public void setUp() {
-        accessToken = new UserClient().registerAndGetToken(UserGenerator.getRandom());
+        userClient = new UserClient();
+        orderClient = new OrderClient();
+        accessToken = userClient.registerAndGetToken(UserGenerator.getRandom());
     }
 
     @After
     public void tearDown() {
-        new UserClient().delete(accessToken);
+        userClient.delete(accessToken);
     }
 
     @Test
     @DisplayName("Получить список заказов для авторизованного пользователя")
     @Description("Список успешно получен")
     public void testGetOrdersForAuthorizedUser(){
-        Response response = new OrderClient().getAllPerUser(accessToken);
+        Response response = orderClient.getAllPerUser(accessToken);
         OrderListResponse mappedCreateResponse = response.getBody().as(OrderListResponse.class);
 
         assertThat(ErrorMessageConstants.STATUS_CODE_IS_DIFFERENT, response.statusCode(), equalTo(200));
@@ -48,7 +52,7 @@ public class OrdersGetForUserTests {
     @DisplayName("Получить список заказов для неавторизованного пользователя")
     @Description("Список не получен, возвращается сообщение 'You should be authorised'")
     public void testGetOrdersForNotAuthorizedUser(){
-        Response response = new OrderClient().getAllPerUser("");
+        Response response = orderClient.getAllPerUser("");
         OrderListResponse mappedCreateResponse = response.getBody().as(OrderListResponse.class);
 
         assertFalse(ErrorMessageConstants.WRONG_SUCCESS_STATUS, mappedCreateResponse.success);
